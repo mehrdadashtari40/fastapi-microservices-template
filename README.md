@@ -1,2 +1,12 @@
 # fastapi-microservices-template
-show microservices, async tasks, databases, auth, Docker, Redis, Celery.
+
+Demo microservices stack:
+- Gateway (8000)
+- Auth-Service (8001)
+- Users-Service (8002)
+- Tasks-Service (8003)
+- Postgres (5432), Redis (6379)
+
+Run locally:
+```bash
+docker compose up --build

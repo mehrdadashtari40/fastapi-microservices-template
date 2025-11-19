@@ -1,0 +1,64 @@
+version: '3.8'
+services:
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: pguser
+      POSTGRES_PASSWORD: pgpass
+      POSTGRES_DB: appdb
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  auth-service:
+    build: ./auth-service
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: postgresql+asyncpg://pguser:pgpass@postgres/appdb
+      SECRET_KEY: verysecretkey
+      REDIS_URL: redis://redis:6379/0
+    ports:
+      - "8001:8001"
+
+  users-service:
+    build: ./users-service
+    depends_on:
+      - postgres
+    environment:
+      DATABASE_URL: postgresql+asyncpg://pguser:pgpass@postgres/appdb
+    ports:
+      - "8002:8002"
+
+  tasks-service:
+    build: ./tasks-service
+    depends_on:
+      - redis
+      - postgres
+    environment:
+      DATABASE_URL: postgresql+asyncpg://pguser:pgpass@postgres/appdb
+      CELERY_BROKER_URL: redis://redis:6379/0
+    ports:
+      - "8003:8003"
+
+  gateway:
+    build: ./gateway-service
+    depends_on:
+      - auth-service
+      - users-service
+      - tasks-service
+    environment:
+      AUTH_URL: http://auth-service:8001
+      USERS_URL: http://users-service:8002
+      TASKS_URL: http://tasks-service:8003
+    ports:
+      - "8000:8000"
+
+volumes:
+  pgdata:
